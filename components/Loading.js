@@ -8,7 +8,7 @@ export default function Loading({ isVisible, text }) {
         <Overlay 
         isVisible= {isVisible}
         windowBackgroundColor="rgb(0,0,0,0.5)"
-        OverlayBackgroundColor="transparent"
+        overlayBackgroundColor="transparent"
         overlayStyle={styles.overlay}
         >
             <View style={styles.view}>

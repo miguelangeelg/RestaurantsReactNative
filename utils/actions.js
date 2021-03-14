@@ -13,9 +13,25 @@ export const isUserLogged = () => {
         user !== null && (isLogged = true);
 
     } )
-
+    return isLogged;
 }
 
 export const getCurrentUser = () => {
-    return firebase.auth().getCurrentUser
+    return firebase.auth().currentUser
 }
+
+export const closeSession = () => {
+    return firebase.auth().signOut()
+}
+
+export const registerUserF = async (email, password) => {
+    const result = {statusResponse: true, error: null}
+    try {
+        await firebase.auth().createUserWithEmailAndPassword(email, password)
+    } catch (error) {
+        result.statusResponse = false;
+        result.error = "This emails already is registered"
+    }
+    return result
+}
+
