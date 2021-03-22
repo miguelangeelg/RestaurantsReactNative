@@ -1,23 +1,63 @@
 import React, {useState} from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { Input, Button, Icon } from 'react-native-elements'
-import {size, trim} from 'lodash'
+import {size, trim, isEmpty} from 'lodash'
 import {useNavigation} from '@react-navigation/native'
 import Loading from '../Loading'
+import { validateEmail } from '../../utils/helpers'
+import { loginWithEmailAndPassword } from '../../utils/actions'
 export default function LogginForm() {
     const [showPassword, setShowPassword] = useState(false)
     const [formData, setFormData] = useState(defaultFormValue())
     const [loading, setLoading] = useState(false);
+    const [errorEmail, setErrorEmail] = useState("")
+    const [errorPassword, setErrorPassword] = useState("")
+  
+
     const navigation = useNavigation();
+
+
     const onChange = (e, type) => {
         setFormData({...formData, [type]:e.nativeEvent.text});
     }
 
-    const [errorEmail, setErrorEmail] = useState("")
-    const [errorPassword, setErrorPassword] = useState("")
+ 
+   
 
-    const doLogin = () => {
-        alert('Login!');
+    const doLogin = async() => {
+        if (!validateData()) {
+            return;
+        }
+
+        setLoading(true)
+        const result = await loginWithEmailAndPassword(formData.email, formData.password)
+        setLoading(false)
+
+        if (!result.statusResponse) {
+            setErrorEmail(result.error)
+            setErrorPassword(result.error)
+            return
+        }
+
+        navigation.navigate("account")
+    }
+
+    const validateData = () => {
+        setErrorEmail("")
+        setErrorPassword("")
+        let isValid = true
+
+        if(!validateEmail(formData.email)) {
+            setErrorEmail("Debes de ingresar un email válido.")
+            isValid = false
+        }
+
+        if (isEmpty(formData.password)) {
+            setErrorPassword("Debes de ingresar tu contraseña.")
+            isValid = false
+        }
+
+        return isValid
     }
 
     return (
