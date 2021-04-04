@@ -5,6 +5,7 @@ import { Icon, ListItem } from 'react-native-elements';
 import Modal from '../../components/Modal';
 import ChangeEmailForm from './ChangeEmailForm';
 import ChangeNames from './ChangeNames';
+import ChangePasswordForm from './ChangePasswordForm';
 
 export default function AccountOptions({user,setReloadUser,toastRef}) {
     const [isVisibleModal, setIsVisibleModal] = useState(false)
@@ -34,7 +35,10 @@ export default function AccountOptions({user,setReloadUser,toastRef}) {
                 break;
             case "password":
                 setRenderComponent(
-                    <Text>Password</Text>
+                    <ChangePasswordForm
+                        setShowM = {setIsVisibleModal}
+                        toastRef = {toastRef}
+                    />
                 )
                  break;
         
@@ -97,13 +101,17 @@ export default function AccountOptions({user,setReloadUser,toastRef}) {
                 ))
 
           }
-          <Modal 
-            isVisible={isVisibleModal} 
-            setVisible={setIsVisibleModal}
-            children= {renderComponent}
-            > 
+          {
+              renderComponent && (
+                <Modal 
+                    isVisible={isVisibleModal} 
+                    setVisible={setIsVisibleModal}
+               >
                 {renderComponent}
-            </Modal>
+              </Modal>
+              )
+          }
+         
         </View>
     )
   

@@ -22,6 +22,7 @@ export default function InfoUser({user, setLoading, setLoadingText}) {
         Alert.alert("An error occurred uploading the profile image");
         return;
       }
+
       const resultUpdateProfile = await updateProfile({photoURL: resultUploadImage.url});
       setLoading(false);
       if (resultUpdateProfile.statusResponse){

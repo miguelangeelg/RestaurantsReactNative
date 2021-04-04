@@ -24,21 +24,15 @@ export default function ChangeEmailForm({email, setShowM,setReloadUser,toastRef}
             setErrorPassword("password incorrect");
             return;
         }
-
-        const changeEmail = await updateEmail(email);
+        const changeEmail = await updateEmail(newEmail);
 
         if (!changeEmail.statusResponse) {
             setErrorEmail("Cannot update email because that email is used for other user");
             return;
         }
-
-       /* const response =  await updateProfile({displayName: newDisplayName});
-        setLoading(false);
-        if (!response.statusResponse) {
-            setError("Error updating names");
-            return;
-        }
-        */
+        setLoading(false)
+       
+        
         setReloadUser(true);
         toastRef.current.show("Email updated",3000);
 
