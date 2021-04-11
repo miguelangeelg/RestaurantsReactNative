@@ -29,7 +29,6 @@ export default function AddRestaurantForm({toastRef, setLoading, navigation}) {
     const addRestaurant = async () => {
        
         if (!validForm()) {
-            console.log('mal')
             return;
         }
         setLoading(true);

@@ -2,6 +2,15 @@ import * as Permissions from 'expo-permissions';
 import * as ImagePicker from 'expo-image-picker';
 import {Alert} from 'react-native';
 import * as Location from 'expo-location';
+import {size} from 'lodash';
+export const formatPhone = (callingCode, phone) => {
+    if (size(phone) < 10)
+    {
+        return `+(${callingCode}) ${phone}`
+    }
+    return `+(${callingCode}) ${phone.substr(0, 3)} ${phone.substr(3, 3)} ${phone.substr(6, 4)}`
+}
+
 
 export const getCurrentLocation = async () => {
     const response = {status: false, location: null};
