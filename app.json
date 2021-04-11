@@ -17,12 +17,19 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier":"com.miguel.restaurants"
     },
     "android": {
+      "package":"com.miguel.restaurants",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
+      },
+      "config":{
+        "googleMaps":{
+          "apiKey":"AIzaSyCfUFFRU3VEOxnAWIEwMVdD7joa_xJ-ZTE"
+        }
       },
       "permissions":[
         "CAMERA_ROLL",

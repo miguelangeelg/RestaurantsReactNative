@@ -2,14 +2,14 @@ import React, {useState, useEffect} from 'react'
 import { StyleSheet, Text, View , ScrollView} from 'react-native'
 import { Avatar, Button, Icon, Input,Image } from 'react-native-elements';
 import CountryPicker from 'react-native-country-picker-modal';
-import AddRestaurant from '../../screens/restaurants/AddRestaurant';
-import {map,size, filter} from 'lodash';
-import { getCurrentLocation, loadImageFromGalery } from '../../utils/helpers';
+import Modal from '../Modal';
+import {map,size, filter, isEmpty} from 'lodash';
+import { getCurrentLocation, loadImageFromGalery, validateEmail } from '../../utils/helpers';
 import { Alert } from 'react-native';
 import { Dimensions } from 'react-native';
-import Modal from '../Modal';
 import MapView from 'react-native-maps';
-
+import { addDocumentWithoutId, getCurrentUser, uploadImage } from '../../utils/actions';
+import uuid from 'random-uuid-v4';
 const widthScreen = Dimensions.get("window").width;
 
 
@@ -24,10 +24,102 @@ export default function AddRestaurantForm({toastRef, setLoading, navigation}) {
     const [imageSelected, setImageSelected] = useState([]);
     const [isVisibleMap, setIsVisibleMap] = useState(false);
     const [locationRestaurant, setLocationRestaurant] = useState(null);
+ 
 
-    const addRestaurant = () => {
-        console.log(formData)
+    const addRestaurant = async () => {
+       
+        if (!validForm()) {
+            console.log('mal')
+            return;
+        }
+        setLoading(true);
+
+        const responseUploadImages = await uploadImages();
+        const restaurantObj = {
+            name: formData.name,
+            address: formData.address,
+            description: formData.description,
+            callingCode: formData.callingCode,
+            phone: formData.phone,
+            location: locationRestaurant,
+            email: formData.email,
+            images: responseUploadImages,
+            rating: 0,
+            ratingTotal: 0,
+            quantityVoting: 0,
+            createAt: new Date(),
+            createBy: getCurrentUser().uid
+        }
+        setLoading(false);
+
+        const responseAddRestaurant = await addDocumentWithoutId('Restaurants',restaurantObj);
+        if (!responseAddRestaurant.statusResponse) {
+            toastRef.current.show("It cannot save the restaurant, try it later");
+            return;
+        }
+        navigation.navigate('restaurants');
     }
+
+    const uploadImages = async() => {
+        const imgUrl = [];
+        await Promise.all(
+            map(imageSelected, async(image)=>{
+                const response = await uploadImage(image,'Restaurants',uuid());
+                if(response.statusResponse){
+                    imgUrl.push(response.url);
+                }
+            })
+        )
+        return imgUrl;
+    }
+
+    const clearErrors = () => {
+        setErrorAddress(null)
+        setErrorDescription(null)
+        setErrorEmail(null)
+        setErrorName(null)
+        setErrorPhone(null)
+    }
+
+    const validForm = ()=> {
+        clearErrors()
+        let isValid = true;
+
+        if (isEmpty(formData.name)) {
+            setErrorName("you must enter the restaurant's name.")
+            isValid = false
+        }
+
+        if (isEmpty(formData.address)) {
+            setErrorAddress("you must enter the restaurant's address.")
+            isValid = false
+        }
+
+        if (!validateEmail(formData.email)) {
+            setErrorEmail("you must enter a email valid.")
+            isValid = false
+        }
+
+        if (size(formData.phone) < 10) {
+            setErrorPhone("you must enter a phone valid.")
+            isValid = false
+        }
+
+        if (isEmpty(formData.description)) {
+            setErrorDescription("you must enter a description.")
+            isValid = false
+        }
+        if (!locationRestaurant) {
+            toastRef.current.show("you must assigne the location in the map.", 3000)
+            isValid = false
+        } else if(size(imageSelected) === 0) {
+            toastRef.current.show("you must selected at least a restaurant photo.", 3000)
+            isValid = false
+        }
+
+        return isValid
+    }
+
     return (
         <ScrollView style={styles.containerView}>
             <ImageRestaurant imageRestaurant={imageSelected[0]} />
@@ -40,6 +132,7 @@ export default function AddRestaurantForm({toastRef, setLoading, navigation}) {
              errorAddress={errorAddress}
              errorPhone={errorPhone}
              setIsVisibleMap={setIsVisibleMap}
+             locationRestaurant={locationRestaurant}
             />
             <UploadImage
                 toastRef={toastRef}
@@ -56,37 +149,45 @@ export default function AddRestaurantForm({toastRef, setLoading, navigation}) {
                 setIsVisibleMap={setIsVisibleMap} 
                 setLocationRestaurant={setLocationRestaurant}
                 toastRef={toastRef}
-                locationRestaurant={locationRestaurant}
             />
         </ScrollView>
     )
 }
 
-function MapRestaurant({isVisibleMap, setIsVisibleMap, setLocationRestaurant, toastRef,locationRestaurant}){
+function MapRestaurant({isVisibleMap, setIsVisibleMap, setLocationRestaurant, toastRef}){
+    const [newRegion, setNewRegion] = useState(null);
+
     useEffect(() => {
        (async()=>{
            const response = await getCurrentLocation();
            if (!response.status) {
             return;
            }
-           setLocationRestaurant(response.location);
+           setNewRegion(response.location);
        })()
-    }, [])
+    }, []);
+    
+    const confirmLocation = () => {
+        setLocationRestaurant(newRegion);
+        toastRef.current.show('Location saved',1000);
+        setIsVisibleMap(false);
+    }
     return (
         <Modal isVisible={isVisibleMap} setVisible={setIsVisibleMap} >
+            <View>
            <View>
                {
-                   locationRestaurant && (
+                   newRegion && (
                        <MapView
                         style={styles.mapView}
-                        initialRegion={locationRestaurant}
+                        initialRegion={newRegion}
                         showsUserLocation={true}
-                        onRegionChange={(region)=>{setLocationRestaurant(region)}}
+                        onRegionChange={(region)=>{setNewRegion(region)}}
                        >
                            <MapView.Marker
                             coordinate = {{
-                                latitude: locationRestaurant.latitude, 
-                                longitude: locationRestaurant.longitude
+                                latitude: newRegion.latitude, 
+                                longitude: newRegion.longitude
                             }}
                             draggable={true}
                             
@@ -100,12 +201,16 @@ function MapRestaurant({isVisibleMap, setIsVisibleMap, setLocationRestaurant, to
                     title="Save ubication"
                     containerStyle={styles.btnContainerButtonMap}
                     buttonStyle = {styles.btnButtonMap}
+                    onPress={confirmLocation}
                />
                <Button
                     title="Cancel ubication"
                     containerStyle={styles.btnContainerButtonMapCancel}
                     buttonStyle = {styles.btnButtonMapCancel}
+                    onPress={()=>setIsVisibleMap(false) }
                />
+
+            </View>
            </View>
         </Modal>
     );
@@ -177,14 +282,22 @@ function UploadImage({toastRef, imageSelected, setImageSelected}){
     )
 }
 
-function FormAdd({formData,setFormData,errorName,errorDescription,errorEmail,errorAddress,errorPhone, setIsVisibleMap}){
+function FormAdd({
+    formData,
+    setFormData,
+    errorName,
+    errorDescription,
+    errorEmail,
+    errorAddress,
+    errorPhone,
+    setIsVisibleMap, 
+    locationRestaurant}){
     const [country, setCountry] = useState("CA");
     const [callingCode, setCallingCode] = useState("1");
     const [phone, setPhone] = useState("");
 
     let onChange = (e,type) =>{
         setFormData({...formData,[type]:e.nativeEvent.text});
-        console.log(formData)
     }
 
     return (
@@ -198,12 +311,12 @@ function FormAdd({formData,setFormData,errorName,errorDescription,errorEmail,err
             <Input
                 placeholder="Restaurant's address"
                 defaultValue={formData.address}
-                onChange={(e) => {onChange(e,"adress")}}
+                onChange={(e) => {onChange(e,"address")}}
                 errorMessage={errorAddress}
                 rightIcon={{
                     type:"material-community",
                     name: "google-maps",
-                    color: "#eb2c2c",
+                    color: locationRestaurant ? "eb2c2c" : "#c2c2c2",
                     onPress: () => {setIsVisibleMap(true)}
                 }}
             />
@@ -221,20 +334,18 @@ function FormAdd({formData,setFormData,errorName,errorDescription,errorEmail,err
                     withFilter
                     withCallingCodeButton
                     containerStyle={styles.countryPicker}
-                    countryCode={country}
                     defaultValue={formData.country}
-                    onSelect={(country)=>{
-                        setCountry(country.cca2)
-                        setCallingCode(country.callingCode[0])
-                    }
-                    }
-                    onSelect={(country)=>{
-                        setFormData({...formData,"callingCode":country.callingCode[0]})
-                        setFormData({...formData,country:country.cca2})
-                        console.log(country.cca2)
-
-                        setCountry(country.cca2); 
-                        setCallingCode(country.callingCode[0])}}
+                    countryCode={country}
+                    onSelect={(country) => {
+                        setFormData({ 
+                            ...formData, 
+                            "country": country.cca2, 
+                            "callingCode": country.callingCode[0]
+                        })
+                        setCountry(country.cca2);
+                        setCallingCode(country.callingCode[0]);
+                    }}
+                        
                 />
                 <Input
                   placeholder="Restaurant's whatsapp"
